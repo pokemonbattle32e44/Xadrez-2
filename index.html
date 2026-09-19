@@ -1,18 +1,522 @@
 <!doctype html>
-<html lang="en">
+<html lang="pt-BR">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Xadrez 2</title>
-    <meta name="description" content="Jogo de xadrez multiplayer online para 2 a 10 jogadores com tabuleiro expandido, montanhas e novas peças personalizadas." />
+    <meta
+      name="description"
+      content="Jogo de xadrez multiplayer online para 2 a 10 jogadores com tabuleiro expandido, montanhas e novas peças personalizadas."
+    />
     <meta property="og:title" content="Xadrez 2" />
-    <meta property="og:description" content="Jogo de xadrez multiplayer online para 2 a 10 jogadores com tabuleiro expandido, montanhas e novas peças personalizadas." />
+    <meta
+      property="og:description"
+      content="Jogo de xadrez multiplayer online para 2 a 10 jogadores com tabuleiro expandido, montanhas e novas peças personalizadas."
+    />
     <meta property="og:type" content="website" />
     <meta name="twitter:card" content="summary_large_image" />
+    <link rel="stylesheet" href="/src/index.css" />
   </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
+  <body class="min-h-screen bg-slate-950 text-slate-100 font-sans antialiased select-none selection:bg-amber-400 selection:text-slate-950">
+    <!-- App Container -->
+    <div id="app" class="flex flex-col min-h-screen">
+
+      <!-- Top Header Navigation -->
+      <header class="sticky top-0 z-40 w-full bg-slate-950/90 backdrop-blur-md border-b border-slate-800 px-4 py-3 flex items-center justify-between shadow-lg">
+        <div class="flex items-center gap-3">
+          <div class="flex items-center gap-2 cursor-pointer" id="btn-brand-home">
+            <span class="text-xl sm:text-2xl font-black tracking-tight text-white flex items-center gap-1">
+              XADREZ <span class="text-amber-400 font-black text-2xl">2</span>
+            </span>
+            <span class="hidden sm:inline-block px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+              Multiplayer 2-10P
+            </span>
+          </div>
+
+          <!-- Connection Status -->
+          <div id="connection-status" class="flex items-center gap-1.5 text-[11px] text-emerald-400 pl-2 border-l border-slate-800 font-medium">
+            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+            <span id="connection-text">Firebase Online</span>
+          </div>
+        </div>
+
+        <!-- Header Actions -->
+        <div class="flex items-center gap-2">
+          <!-- Room code indicator in header -->
+          <div id="header-room-badge" class="hidden items-center gap-2 px-3 py-1 rounded-xl bg-slate-900 border border-slate-700/70 text-xs">
+            <span class="text-slate-400">Sala:</span>
+            <span id="header-room-code" class="font-mono font-bold text-amber-400 tracking-wider">------</span>
+          </div>
+
+          <!-- Sound Toggle Button -->
+          <button
+            id="btn-toggle-sound"
+            class="p-2 rounded-xl text-slate-400 hover:text-slate-200 hover:bg-slate-800 transition-colors"
+            title="Ativar/Desativar Sons"
+          >
+            <span id="sound-icon-on">🔊</span>
+            <span id="sound-icon-off" class="hidden">🔇</span>
+          </button>
+
+          <!-- Rules Modal Button -->
+          <button
+            id="btn-rules-header"
+            class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold border border-slate-700 transition-colors"
+          >
+            <span>📜</span>
+            <span class="hidden sm:inline">Regras</span>
+          </button>
+
+          <!-- Leave Room Button -->
+          <button
+            id="btn-leave-top"
+            class="hidden p-2 rounded-xl text-slate-400 hover:text-rose-400 hover:bg-rose-950/30 transition-colors"
+            title="Sair da Partida"
+          >
+            <span>🚪</span>
+          </button>
+        </div>
+      </header>
+
+      <!-- Network Warning Banner -->
+      <div id="network-banner" class="hidden w-full bg-amber-500/20 border-b border-amber-500/30 text-amber-300 text-xs py-2 px-4 text-center font-medium">
+        Problema na conexão em tempo real. Reconectando ao Firebase...
+      </div>
+
+      <!-- Turn Alert Notification Toast -->
+      <div id="turn-toast-container" class="fixed top-16 left-1/2 -translate-x-1/2 z-50 pointer-events-none transition-all duration-300 opacity-0 -translate-y-2">
+        <div id="turn-toast-msg" class="px-5 py-2 rounded-full bg-slate-900/95 border border-amber-400/80 text-amber-300 text-xs sm:text-sm font-bold shadow-2xl backdrop-blur-md flex items-center gap-2">
+          <span>👑</span>
+          <span id="turn-toast-text">Sua vez de jogar!</span>
+        </div>
+      </div>
+
+      <!-- Main App Content Area -->
+      <main class="flex-1 flex flex-col items-center justify-start p-2 sm:p-4 w-full max-w-7xl mx-auto">
+
+        <!-- ============================================================== -->
+        <!-- SCREEN 1: WELCOME & ROOM CREATION / JOIN                       -->
+        <!-- ============================================================== -->
+        <section id="screen-welcome" class="flex flex-col items-center justify-center min-h-[80vh] w-full max-w-4xl mx-auto px-4 py-6">
+          <div class="flex flex-col items-center text-center mb-6">
+            <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs font-semibold mb-3">
+              ✨ A Nova Era do Xadrez Multiplayer
+            </div>
+            <h1 class="text-4xl sm:text-6xl font-black text-white tracking-tight mb-2">
+              XADREZ <span class="text-amber-400">2</span>
+            </h1>
+            <p class="text-slate-400 text-sm sm:text-base max-w-xl leading-relaxed">
+              Jogue online com <strong>2 a 10 jogadores</strong> simultâneos em um tabuleiro expandido de 20x20 com Montanhas, Cabras, Arquimagos, Catapultas e Dragões. Sincronização em tempo real pelo Firebase.
+            </p>
+          </div>
+
+          <!-- Card -->
+          <div class="w-full max-w-xl bg-slate-900/90 border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl backdrop-blur-md">
+            <!-- Player Name -->
+            <div class="mb-5">
+              <label for="input-player-name" class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">
+                Seu Nome de Comandante
+              </label>
+              <input
+                id="input-player-name"
+                type="text"
+                maxlength="18"
+                placeholder="Ex: Magnus, Kasparov, Alexandre..."
+                class="w-full px-4 py-3 bg-slate-950 border border-slate-700/80 rounded-2xl text-slate-100 placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 transition-all font-medium"
+              />
+            </div>
+
+            <!-- Error Banner -->
+            <div id="welcome-error-msg" class="hidden mb-4 p-3 rounded-xl bg-rose-500/15 border border-rose-500/30 text-rose-300 text-xs font-medium"></div>
+
+            <!-- Action Grid -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+              <!-- Create Room -->
+              <div class="flex flex-col p-4 rounded-2xl bg-slate-950/60 border border-slate-800">
+                <span class="text-xs font-bold text-slate-200 flex items-center gap-1.5 mb-1.5">
+                  ➕ Criar Nova Sala
+                </span>
+                <span class="text-[11px] text-slate-400 mb-3">
+                  Capacidade máxima (2 a 10 jogadores):
+                </span>
+
+                <!-- Max Players Selector -->
+                <div class="grid grid-cols-4 gap-1.5 mb-4" id="max-players-buttons">
+                  <button type="button" data-players="2" class="btn-player-count py-1.5 rounded-lg text-xs font-semibold bg-slate-800 text-slate-300 hover:bg-slate-700 transition-all">2P</button>
+                  <button type="button" data-players="4" class="btn-player-count py-1.5 rounded-lg text-xs font-bold bg-amber-400 text-slate-950 shadow-md transition-all">4P</button>
+                  <button type="button" data-players="6" class="btn-player-count py-1.5 rounded-lg text-xs font-semibold bg-slate-800 text-slate-300 hover:bg-slate-700 transition-all">6P</button>
+                  <button type="button" data-players="10" class="btn-player-count py-1.5 rounded-lg text-xs font-semibold bg-slate-800 text-slate-300 hover:bg-slate-700 transition-all">10P</button>
+                </div>
+
+                <button
+                  id="btn-create-room"
+                  class="mt-auto w-full py-2.5 px-4 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs flex items-center justify-center gap-1.5 shadow-lg shadow-amber-500/20 active:scale-98 transition-all cursor-pointer"
+                >
+                  <span id="btn-create-text">Criar Sala (4P)</span>
+                  <span>➔</span>
+                </button>
+              </div>
+
+              <!-- Join Room -->
+              <div class="flex flex-col p-4 rounded-2xl bg-slate-950/60 border border-slate-800">
+                <span class="text-xs font-bold text-slate-200 flex items-center gap-1.5 mb-1.5">
+                  👥 Entrar com Código
+                </span>
+                <span class="text-[11px] text-slate-400 mb-3">
+                  Insira o código de 6 dígitos da sala:
+                </span>
+
+                <input
+                  id="input-room-code"
+                  type="text"
+                  maxlength="6"
+                  placeholder="CÓDIGO (ex: XK9A2B)"
+                  class="w-full px-3 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-amber-400 font-mono font-bold text-center tracking-widest text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 mb-4 uppercase"
+                />
+
+                <button
+                  id="btn-join-room"
+                  class="mt-auto w-full py-2.5 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-lg shadow-indigo-600/20 active:scale-98 transition-all cursor-pointer"
+                >
+                  <span id="btn-join-text">Entrar na Sala</span>
+                  <span>➔</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Footer: Learn Rules -->
+            <div class="pt-4 border-t border-slate-800/80 flex items-center justify-between">
+              <button
+                id="btn-open-rules-welcome"
+                class="flex items-center gap-1.5 text-xs text-slate-400 hover:text-amber-300 font-medium transition-colors cursor-pointer"
+              >
+                <span>❓</span>
+                <span>Como Jogar: Montanhas & Novas Peças</span>
+              </button>
+              <span class="text-[11px] text-slate-500 font-mono">Xadrez 2 v2.0</span>
+            </div>
+          </div>
+        </section>
+
+        <!-- ============================================================== -->
+        <!-- SCREEN 2: LOBBY WAITING ROOM                                   -->
+        <!-- ============================================================== -->
+        <section id="screen-lobby" class="hidden flex-col items-center justify-center min-h-[75vh] w-full max-w-2xl mx-auto px-4 py-8">
+          <div class="w-full bg-slate-900/90 border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl backdrop-blur-md flex flex-col items-center text-center">
+            <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-indigo-500/10 border border-indigo-500/30 text-indigo-300 text-xs font-semibold mb-3">
+              🛡️ Sala de Espera Multiplayer
+            </div>
+
+            <h2 class="text-2xl sm:text-3xl font-bold text-white mb-2 tracking-tight">
+              Lobby do <span class="text-amber-400">Xadrez 2</span>
+            </h2>
+            <p class="text-sm text-slate-400 max-w-md mb-5">
+              Compartilhe o código com até 10 amigos. O anfitrião pode iniciar a partida assim que houver pelo menos 2 jogadores prontos.
+            </p>
+
+            <!-- Room Code Badge -->
+            <div class="flex items-center gap-3 bg-slate-950 border border-slate-700/80 rounded-2xl p-2.5 px-5 mb-6 shadow-inner">
+              <div class="flex flex-col items-start">
+                <span class="text-[10px] uppercase font-mono tracking-wider text-slate-400">
+                  Código da Sala
+                </span>
+                <span id="lobby-room-code" class="text-2xl font-mono font-black text-amber-400 tracking-widest">
+                  ------
+                </span>
+              </div>
+              <button
+                id="btn-copy-code"
+                class="flex items-center gap-1.5 px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold rounded-xl border border-slate-600 transition-colors cursor-pointer"
+              >
+                <span id="copy-icon">📋</span>
+                <span id="copy-text">Copiar</span>
+              </button>
+            </div>
+
+            <!-- Connected Players in Lobby -->
+            <div class="w-full mb-6 text-left">
+              <div class="flex items-center justify-between text-xs text-slate-400 mb-3 px-1 font-semibold">
+                <span id="lobby-player-count">Jogadores Conectados (0/0)</span>
+                <span>Mínimo para iniciar: 2</span>
+              </div>
+
+              <div id="lobby-players-grid" class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                <!-- Injected dynamically in HTML -->
+              </div>
+            </div>
+
+            <!-- Host / Player Controls -->
+            <div class="flex flex-col sm:flex-row items-center gap-3 w-full">
+              <button
+                id="btn-start-game"
+                disabled
+                class="flex-1 w-full flex items-center justify-center gap-2 py-3.5 px-6 rounded-2xl font-bold text-sm bg-slate-800 text-slate-500 border border-slate-700/50 cursor-not-allowed transition-all shadow-lg"
+              >
+                <span>▶</span>
+                <span id="btn-start-text">Aguardando jogadores (mínimo 2)...</span>
+              </button>
+
+              <button
+                id="btn-leave-lobby"
+                class="w-full sm:w-auto flex items-center justify-center gap-2 py-3.5 px-5 rounded-2xl bg-slate-800 hover:bg-rose-950/40 text-slate-300 hover:text-rose-400 border border-slate-700 hover:border-rose-900/60 font-semibold text-xs transition-colors cursor-pointer"
+              >
+                <span>🚪</span>
+                <span>Sair da Sala</span>
+              </button>
+            </div>
+          </div>
+        </section>
+
+        <!-- ============================================================== -->
+        <!-- SCREEN 3: ACTIVE GAMEPLAY ARENA                                -->
+        <!-- ============================================================== -->
+        <section id="screen-game" class="hidden flex-col lg:flex-row items-start justify-center gap-4 w-full">
+          <!-- Left Main Column: Board and Viewport -->
+          <div class="flex flex-col items-center w-full lg:flex-1">
+
+            <!-- Turn Banner & Status Header -->
+            <div class="w-full max-w-3xl mb-3 flex flex-wrap items-center justify-between gap-2 p-3 rounded-2xl bg-slate-900/90 border border-slate-800 shadow-xl">
+              <!-- Active player badge -->
+              <div class="flex items-center gap-3">
+                <div id="turn-active-indicator" class="w-4 h-4 rounded-full bg-amber-400 animate-ping"></div>
+                <div class="flex flex-col">
+                  <span class="text-[10px] uppercase font-mono tracking-wider text-slate-400">
+                    Vez de Jogar
+                  </span>
+                  <span id="turn-active-name" class="text-sm font-bold text-slate-100 flex items-center gap-2">
+                    Carregando...
+                  </span>
+                </div>
+              </div>
+
+              <!-- Alerts (Check, Checkmate, Winner) -->
+              <div id="game-status-badges" class="flex items-center gap-2">
+                <div id="badge-check" class="hidden items-center gap-1.5 px-3 py-1 rounded-xl bg-rose-600/30 text-rose-200 border border-rose-500/60 font-black text-xs animate-bounce">
+                  ⚠️ SEU REI ESTÁ EM XEQUE!
+                </div>
+                <div id="badge-eliminated" class="hidden items-center gap-1.5 px-3 py-1 rounded-xl bg-rose-500/20 text-rose-300 border border-rose-500/40 font-semibold text-xs">
+                  💀 Eliminado (Espectador)
+                </div>
+                <div id="badge-winner" class="hidden items-center gap-1.5 px-3 py-1 rounded-xl bg-amber-400/20 text-amber-300 border border-amber-400/40 font-bold text-xs">
+                  👑 Partida Finalizada!
+                </div>
+              </div>
+            </div>
+
+            <!-- Board Toolbar (Zoom & Coordinates) -->
+            <div class="flex items-center justify-between w-full max-w-3xl mb-2 px-2">
+              <div class="flex items-center gap-2 text-xs font-semibold text-slate-300">
+                <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                <span>Tabuleiro Expandido: 20x20 (400 Casas)</span>
+                <span class="hidden sm:inline-block text-slate-600">|</span>
+                <span class="hidden sm:inline-block text-amber-400/90 text-xs">Centro (8..11): Promoção a Dama</span>
+              </div>
+
+              <div class="flex items-center gap-1 bg-slate-900 border border-slate-700/80 rounded-lg p-1 shadow-md">
+                <button id="btn-zoom-out" class="p-1 px-2 text-slate-300 hover:text-white hover:bg-slate-800 rounded font-bold text-xs transition-colors" title="Diminuir Zoom">
+                  🔍-
+                </button>
+                <span id="zoom-value" class="text-[11px] font-mono px-1.5 text-slate-400 font-medium">100%</span>
+                <button id="btn-zoom-in" class="p-1 px-2 text-slate-300 hover:text-white hover:bg-slate-800 rounded font-bold text-xs transition-colors" title="Aumentar Zoom">
+                  🔍+
+                </button>
+                <button id="btn-zoom-reset" class="p-1 px-1.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded text-xs transition-colors" title="Resetar">
+                  ↺
+                </button>
+              </div>
+            </div>
+
+            <!-- Scrollable 20x20 Board Viewport Container -->
+            <div
+              id="board-scroll-container"
+              class="w-full overflow-auto max-h-[75vh] flex justify-center p-2 rounded-2xl bg-slate-950/80 border border-slate-800 shadow-2xl backdrop-blur-sm"
+              style="touch-action: pan-x pan-y;"
+            >
+              <!-- The 20x20 Grid Element -->
+              <div
+                id="chess-board"
+                class="relative grid rounded-xl overflow-hidden border-2 border-slate-700/80 shadow-2xl bg-slate-900"
+              >
+                <!-- Generated by main.ts -->
+              </div>
+            </div>
+
+            <!-- Terrain Legend -->
+            <div class="mt-3 flex flex-wrap items-center justify-center gap-3 text-[11px] text-slate-400 px-2">
+              <span class="flex items-center gap-1">
+                <span class="w-2.5 h-2.5 bg-stone-700 border border-stone-600 rounded-sm"></span> Montanha (Cabra passa/fica; Cavalo pula)
+              </span>
+              <span class="flex items-center gap-1">
+                <span class="w-2.5 h-2.5 bg-amber-900/60 border border-amber-700/50 rounded-sm"></span> Centro (Promoção a Dama)
+              </span>
+              <span class="flex items-center gap-1">
+                <span class="w-2.5 h-2.5 bg-orange-500/50 border border-orange-400/80 rounded-sm"></span> Disparo Catapulta (3 casas retas)
+              </span>
+              <span class="flex items-center gap-1">
+                <span class="w-2.5 h-2.5 bg-purple-500/50 border border-purple-400/80 rounded-sm"></span> Permuta Arquimago (com aliado)
+              </span>
+            </div>
+          </div>
+
+          <!-- Right Sidebar: Players, History & Pieces Guide -->
+          <div class="flex flex-col gap-4 w-full lg:w-80 flex-shrink-0">
+            <!-- Player List Status Card -->
+            <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 shadow-xl">
+              <div class="flex items-center justify-between pb-2 mb-2 border-b border-slate-800">
+                <h3 class="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                  Jogadores (<span id="game-player-count">0/0</span>)
+                </h3>
+                <span id="game-alive-count" class="text-[11px] text-slate-500 font-mono">Vivos: 0</span>
+              </div>
+              <div id="game-players-list" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-1 gap-2">
+                <!-- Injected dynamically in HTML -->
+              </div>
+            </div>
+
+            <!-- Move History Card -->
+            <div class="flex flex-col bg-slate-900/90 border border-slate-800 rounded-2xl p-3.5 shadow-xl">
+              <div class="flex items-center justify-between pb-2 mb-2 border-b border-slate-800">
+                <h3 class="text-xs font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                  <span>📜</span>
+                  <span>Histórico de Jogadas</span>
+                </h3>
+                <span id="history-total-count" class="text-[10px] font-mono text-slate-500">Total: 0</span>
+              </div>
+              <div id="history-scroll-list" class="overflow-y-auto max-h-[220px] space-y-1.5 pr-1 font-mono text-xs">
+                <div class="flex items-center justify-center h-20 text-slate-600 text-xs italic">
+                  Nenhuma jogada realizada ainda
+                </div>
+              </div>
+            </div>
+
+            <!-- Quick Pieces Reference -->
+            <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-3.5 text-xs text-slate-400">
+              <div class="flex items-center justify-between font-bold text-slate-200 mb-2">
+                <span class="flex items-center gap-1.5">
+                  <span>✨</span> Novas Peças do Xadrez 2
+                </span>
+                <button id="btn-open-rules-sidebar" class="text-amber-400 hover:underline text-[11px] cursor-pointer">
+                  Ver Todas
+                </button>
+              </div>
+              <div class="space-y-2 text-[11px]">
+                <div><strong class="text-slate-200">🐐 Cabra:</strong> Move 2 casas na diagonal. Pode pisar e parar em Montanhas.</div>
+                <div><strong class="text-slate-200">🧙 Arquimago:</strong> Move 1 casa. Permuta de lugar com peça aliada adjacente.</div>
+                <div><strong class="text-slate-200">🎯 Catapulta:</strong> Move 1 casa. Captura à distância a 3 casas retas sem sair do lugar.</div>
+                <div><strong class="text-slate-200">🐉 Dragão:</strong> Move até 3 casas em linha reta e voa por cima de 1 peça.</div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+      </main>
+
+      <!-- ============================================================== -->
+      <!-- MODAL: OFFICIAL RULES GUIDE                                    -->
+      <!-- ============================================================== -->
+      <div id="modal-rules" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+        <div class="relative w-full max-w-2xl max-h-[85vh] overflow-y-auto bg-slate-900 border border-slate-700/80 rounded-3xl p-6 shadow-2xl text-slate-200">
+          <button id="btn-close-rules" class="absolute top-5 right-5 p-2 rounded-full text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer">
+            ✕
+          </button>
+
+          <div class="mb-5">
+            <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-400 text-xs font-semibold mb-2">
+              📜 Manual Oficial
+            </div>
+            <h2 class="text-2xl font-black text-white tracking-tight">
+              Regras do Xadrez 2 (Multiplayer 2 a 10 Jogadores)
+            </h2>
+          </div>
+
+          <div class="space-y-4 mb-6 text-sm text-slate-300">
+            <!-- Mountain Rules -->
+            <div class="p-4 rounded-2xl bg-slate-950/60 border border-slate-800">
+              <h3 class="font-bold text-amber-300 mb-1 flex items-center gap-2">
+                🏔️ Casas Especiais (Montanhas)
+              </h3>
+              <ul class="list-disc pl-5 space-y-1 text-xs text-slate-400">
+                <li>Obstáculos rochosos identificados no tabuleiro de 20x20.</li>
+                <li><strong class="text-slate-200">Apenas a Cabra</strong> pode parar sobre uma Montanha ou atravessá-la.</li>
+                <li><strong class="text-slate-200">O Cavalo</strong> pode pular por cima das Montanhas, mas não pode parar sobre elas.</li>
+                <li>Nenhuma outra peça pode passar ou parar nas casas de Montanha.</li>
+              </ul>
+            </div>
+
+            <!-- Promotion & Elimination -->
+            <div class="p-4 rounded-2xl bg-slate-950/60 border border-slate-800">
+              <h3 class="font-bold text-amber-300 mb-1 flex items-center gap-2">
+                👑 Promoção do Peão & Eliminação
+              </h3>
+              <ul class="list-disc pl-5 space-y-1 text-xs text-slate-400">
+                <li><strong class="text-slate-200">Promoção a Dama:</strong> Quando um Peão atinge a zona central (casas 8 a 11), é promovido automaticamente a uma Dama!</li>
+                <li><strong class="text-slate-200">Xeque-Mate & Eliminação:</strong> Para eliminar um jogador, dê Xeque-Mate no seu Rei. O exército do jogador eliminado é desativado e o turno passa para os sobreviventes até restar um vencedor.</li>
+              </ul>
+            </div>
+
+            <!-- New Pieces -->
+            <h3 class="text-base font-bold text-white pt-2 border-b border-slate-800 pb-2">
+              ✨ Novas Peças Personalizadas
+            </h3>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div class="p-3.5 rounded-2xl bg-slate-800/60 border border-indigo-500/20 flex items-start gap-3">
+                <span class="text-2xl p-2 bg-slate-950 rounded-xl">🐐</span>
+                <div>
+                  <h4 class="font-bold text-sm text-indigo-300">Cabra</h4>
+                  <p class="text-xs text-slate-400 mt-0.5">Move-se exatamente 2 casas na diagonal. Pula e pode permanecer em cima das Montanhas.</p>
+                </div>
+              </div>
+
+              <div class="p-3.5 rounded-2xl bg-slate-800/60 border border-indigo-500/20 flex items-start gap-3">
+                <span class="text-2xl p-2 bg-slate-950 rounded-xl">🧙</span>
+                <div>
+                  <h4 class="font-bold text-sm text-indigo-300">Arquimago</h4>
+                  <p class="text-xs text-slate-400 mt-0.5">Move-se 1 casa em qualquer direção. Habilidade Especial: Permuta (troca de posição) com peça aliada adjacente sem gastar ataque!</p>
+                </div>
+              </div>
+
+              <div class="p-3.5 rounded-2xl bg-slate-800/60 border border-indigo-500/20 flex items-start gap-3">
+                <span class="text-2xl p-2 bg-slate-950 rounded-xl">🎯</span>
+                <div>
+                  <h4 class="font-bold text-sm text-indigo-300">Catapulta</h4>
+                  <p class="text-xs text-slate-400 mt-0.5">Move-se 1 casa para frente ou lados. Habilidade Especial: Captura à distância a 3 casas retas saltando por cima de tudo, sem sair do lugar!</p>
+                </div>
+              </div>
+
+              <div class="p-3.5 rounded-2xl bg-slate-800/60 border border-indigo-500/20 flex items-start gap-3">
+                <span class="text-2xl p-2 bg-slate-950 rounded-xl">🐉</span>
+                <div>
+                  <h4 class="font-bold text-sm text-indigo-300">Dragão</h4>
+                  <p class="text-xs text-slate-400 mt-0.5">Move-se como Torre até 3 casas de distância. Habilidade Especial: Pode voar por cima de 1 peça intermediária.</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Classic Pieces -->
+            <h3 class="text-base font-bold text-white pt-2 border-b border-slate-800 pb-2">
+              ♟️ Peças Tradicionais
+            </h3>
+            <div class="grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs">
+              <div class="p-2.5 rounded-xl bg-slate-800/40 border border-slate-700/30">👑 <strong>Rei:</strong> 1 casa em qualquer direção.</div>
+              <div class="p-2.5 rounded-xl bg-slate-800/40 border border-slate-700/30">👸 <strong>Dama:</strong> Linhas retas e diagonais.</div>
+              <div class="p-2.5 rounded-xl bg-slate-800/40 border border-slate-700/30">🏰 <strong>Torre:</strong> Linhas retas.</div>
+              <div class="p-2.5 rounded-xl bg-slate-800/40 border border-slate-700/30">⛪ <strong>Bispo:</strong> Diagonais.</div>
+              <div class="p-2.5 rounded-xl bg-slate-800/40 border border-slate-700/30">🐴 <strong>Cavalo:</strong> Movimento em L (pula montanhas).</div>
+              <div class="p-2.5 rounded-xl bg-slate-800/40 border border-slate-700/30">♟️ <strong>Peão:</strong> Avanço ao centro e capturas.</div>
+            </div>
+          </div>
+
+          <div class="flex justify-end">
+            <button id="btn-close-rules-bottom" class="px-6 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-semibold text-xs transition-colors cursor-pointer">
+              Fechar Manual
+            </button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Application Controller Script -->
+    <script type="module" src="/src/main.ts"></script>
   </body>
 </html>
-
