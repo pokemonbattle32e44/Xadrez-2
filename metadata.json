@@ -1,0 +1,6 @@
+{
+  "name": "Xadrez 2",
+  "description": "Jogo de xadrez multiplayer online para 2 a 10 jogadores com tabuleiro expandido, montanhas e novas peças personalizadas.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
